@@ -1,4 +1,24 @@
-#include <tvtr_control/robot_hardware_interface.h>
+/* MIT License
+Copyright (c) [2022] [VIP Team RoSE]
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE. */
+
+#include <gnc_control/robot_hardware_interface.h>
 
 int main(int argc, char **argv)
 {
@@ -8,14 +28,14 @@ int main(int argc, char **argv)
     ros::AsyncSpinner spinner(3);
     spinner.start();
 
-    ROS_INFO_STREAM("cube_control_hw_node");
+    ROS_INFO_STREAM("Loading protobot_control_hw_node");
     settings esMain;
     RobotHardwareInterface robot(&nh, &esMain);
     controller_manager::ControllerManager cm(&robot);
     roboclaw rb(&esMain);
     ros::Rate rate(esMain.loopFrequency);
 
-    ROS_INFO("Initializing control interface");
+    ROS_INFO("Initializing roboclaw motor encoders");
     rb.SetupEncoders();
 
     while (ros::ok()) {
@@ -25,7 +45,7 @@ int main(int argc, char **argv)
         rate.sleep();
     }
 
-    ROS_INFO("Shutting down control interface");
+    ROS_INFO("Shutting down roboclaw motor encoders");
     rb.CloseEncoders();
 
     return 0;
@@ -59,18 +79,26 @@ void RobotHardwareInterface::registerStateHandlers()
     jntStateInterface.registerHandle(stateHandleB);
 
     hardware_interface::JointStateHandle stateHandleC(
-        es->leftJoints[0], &pos[2] &vel[2], &eff[2]);
+        es->rightJoints[2], &pos[2], &vel[2], &eff[2]);
     jntStateInterface.registerHandle(stateHandleC);
 
     hardware_interface::JointStateHandle stateHandleD(
-        es->leftJoints[1], &pos[3], &vel[3], &eff[3]);
+        es->leftJoints[0], &pos[3], &vel[3], &eff[3]);
     jntStateInterface.registerHandle(stateHandleD);
+
+    hardware_interface::JointStateHandle stateHandleE(
+        es->leftJoints[1], &pos[4], &vel[4], &eff[4]);
+    jntStateInterface.registerHandle(stateHandleE);
+
+    hardware_interface::JointStateHandle stateHandleF(
+        es->leftJoints[2], &pos[5], &vel[5], &eff[5]);
+    jntStateInterface.registerHandle(stateHandleF);
 
     registerInterface(&jntStateInterface);
 }
 void RobotHardwareInterface::registerJointVelocityHandlers()
 {
-    hardware_interface::JointHandle vel_handle_a(
+        hardware_interface::JointHandle vel_handle_a(
         jntStateInterface.getHandle(es->rightJoints[0]), &cmd[0]);
     jnt_vel_interface.registerHandle(vel_handle_a);
 
@@ -79,12 +107,20 @@ void RobotHardwareInterface::registerJointVelocityHandlers()
     jnt_vel_interface.registerHandle(vel_handle_b);
 
     hardware_interface::JointHandle vel_handle_c(
-        jntStateInterface.getHandle(es->rightJoints[0]), &cmd[2]);
+        jntStateInterface.getHandle(es->rightJoints[2]), &cmd[2]);
     jnt_vel_interface.registerHandle(vel_handle_c);
 
     hardware_interface::JointHandle vel_handle_d(
-        jntStateInterface.getHandle(es->leftJoints[1]), &cmd[3]);
+        jntStateInterface.getHandle(es->leftJoints[0]), &cmd[3]);
     jnt_vel_interface.registerHandle(vel_handle_d);
+
+    hardware_interface::JointHandle vel_handle_e(
+        jntStateInterface.getHandle(es->leftJoints[1]), &cmd[4]);
+    jnt_vel_interface.registerHandle(vel_handle_e);
+
+    hardware_interface::JointHandle vel_handle_f(
+        jntStateInterface.getHandle(es->leftJoints[2]), &cmd[5]);
+    jnt_vel_interface.registerHandle(vel_handle_f);
 
     registerInterface(&jnt_vel_interface);
 }
@@ -127,9 +163,11 @@ ros::Duration RobotHardwareInterface::get_period()
 
 void RobotHardwareInterface::printDebugInfo(std::string name, double* data) {
     ROS_INFO_STREAM(name << " RIGHT_FRONT_WHEEL_JOINT "  << data[0]);
-    ROS_INFO_STREAM(name << " RIGHT_BACK_WHEEL_JOINT " << data[1]);
-    ROS_INFO_STREAM(name << " LEFT_FRONT_WHEEL_JOINT "   << data[2]);
-    ROS_INFO_STREAM(name << " LEFT_BACK_WHEEL_JOINT "   << data[3]);
+    ROS_INFO_STREAM(name << " RIGHT_MIDDLE_WHEEL_JOINT " << data[1]);
+    ROS_INFO_STREAM(name << " RIGHT_BACK_WHEEL_JOINT "   << data[2]);
+    ROS_INFO_STREAM(name << " LEFT_FRONT_WHEEL_JOINT "   << data[3]);
+    ROS_INFO_STREAM(name << " LEFT_MIDDLE_WHEEL_JOINT "  << data[4]);
+    ROS_INFO_STREAM(name << " LEFT_BACK_WHEEL_JOINT "    << data[5]);
 }
 
 void RobotHardwareInterface::setYamlParameters(ros::NodeHandle* nh) {
