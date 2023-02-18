@@ -15,8 +15,8 @@ class RobotHardwareInterface : public hardware_interface::RobotHW
 public:
     RobotHardwareInterface(ros::NodeHandle *nh, settings *es_ptr);
     ~RobotHardwareInterface();
-    void writeToWheels(l298n* l298n, settings* es);
-    void readFromWheels(l298n* l298n, settings* es);
+    void writeToWheels(roboclaw* rb, settings* es);
+    void readFromWheels(roboclaw* rb, settings* es);
 
     ros::Time get_time();
     ros::Duration get_period();
@@ -39,10 +39,10 @@ private:
     struct timespec last_time;
     struct timespec current_time;
     // For reading commands sent from the controller
-    double cmd[4];
+    double cmd[6];
     // for sending data relating to the joints
-    double pos[4];
-    double vel[4];
-    double eff[4];
+    double pos[6];
+    double vel[6];
+    double eff[6];
     settings *es;
 };

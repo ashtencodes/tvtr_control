@@ -1,1 +1,18 @@
-test
+<launch>
+
+	<rosparam command="load" file="$(find gnc_control)/config/control.yaml"/>
+	<rosparam command="load" file="$(find gnc_control)/config/l298n_settings.yaml"/>
+	<!-- Launch hardware interface then add the controller manager and controllers-->
+	<node name="arm_hardware_interface" 
+		pkg="control" 
+		type="robot_hardware_interface" 
+		output="screen"/>
+	<node name="controller_manager_node" 
+		pkg="controller_manager"
+		type="spawner"  
+		output="screen"  
+		ns="/gnc_robot" 
+		args="arm_velocity_controller 
+			arm_joint_publisher" />
+	
+</launch>

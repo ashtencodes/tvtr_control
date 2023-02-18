@@ -5,18 +5,18 @@
 #include <hardware_interface/robot_hw.h> // useful functions
 #include <ros/ros.h>
 #include <string>
-#include <gnc_control/roboclaw.h>
-#include <gnc_control/settings.h>
+
+#include <test_control/l298n.h>
 
 
 //might need serial to send commands to the hardware
-class RobotHardwareInterface : public hardware_interface::RobotHW
+class ArmHardwareInterface : public hardware_interface::RobotHW
 {
 public:
-    RobotHardwareInterface(ros::NodeHandle *nh, settings *es_ptr);
-    ~RobotHardwareInterface();
-    void writeToWheels(l298n* _l298n, settings* es);
-    void readFromWheels(l298n* _l298n, settings* es);
+    ArmHardwareInterface(ros::NodeHandle *nh);
+    ~ArmHardwareInterface();
+    void writeToArm(l298n* _l298n);
+    void readFromArm(l298n* _l298n);
 
     ros::Time get_time();
     ros::Duration get_period();
@@ -31,6 +31,7 @@ private:
     void registerStateHandlers();
     void registerJointVelocityHandlers();
     void printDebugInfo(std::string name, double* data);
+    void ScaleCommands();
 
     ros::Duration elapsed_time;
     struct timespec last_time;
@@ -41,5 +42,7 @@ private:
     double pos[6];
     double vel[6];
     double eff[6];
-    settings *es;
+    std::string armJoints[6] = {"left_joint","right_joint","shoulderToLittle","armToBot","armToEnd","endeffector"};
+    uint8_t linearActuatorIndex = 0;
+    // arm_settings *es;
 };

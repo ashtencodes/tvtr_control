@@ -1,0 +1,37 @@
+arm:
+  joint_state_controller:
+    type: "joint_state_controller/JointStateController"
+    publish_rate: 50  
+
+  # param# Position Controllers ---------------------------------------
+  joint1_position_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: left_joint
+    pid: {p: 50, i: 100, d: 1.0}
+  joint2_position_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: right_joint
+    pid: {p: 50, i: 100, d: 1.0}
+  joint3_position_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: endeffector
+    pid: {p: 50, i: 100, d: 1.0}
+  joint4_position_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: armToEnd
+    pid: {p: 50, i: 100, d: 1.0}
+  joint5_position_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: topToBot
+    pid: {p: 50, i: 100, d: 1.0}
+  joint6_position_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: shoulderTolittle
+    pid: {p: 50, i: 100, d: 1.0}
+  joint7_position_controller:
+    type: velocity_controllers/JointVelocityController
+    joint: botToBase
+    pid: {p: 50, i: 100, d: 1.0}
+
+    # type of controller before
+    # type: effort_controllers/JointPositionController
