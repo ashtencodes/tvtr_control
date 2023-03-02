@@ -151,7 +151,7 @@ WheelHardwareInterface::WheelHardwareInterface(ros::NodeHandle* nh, WheelHwinSet
 {
     // data publishing setup
     this->nodeHandle = nh;
-    roverDataPub = nh->advertise<cr_control::wheel_data>("Wheel/data", 1000);
+    roverDataPub = nh->advertise<cr_control::wheel_data>("wheel/data", 1000);
     test = nh->advertise<std_msgs::Float64>("WheelVelocity", 1000);
 
     // store and calibrate imu
