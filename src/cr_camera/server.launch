@@ -1,0 +1,4 @@
+
+<launch>
+	<node pkg="cr_camera" name="server_py"  type="rpi_node_script.py" output="screen"/>
+</launch>

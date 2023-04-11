@@ -12,6 +12,7 @@ def start(PORT, TOPIC):
 
 	pub = rospy.Publisher(TOPIC, Image, queue_size=30)		#Create a ROS publisher for the video topic
 	rospy.init_node('pic_server', anonymous=True)			#Initialize the ROS node
+	rospy.Subscriber('/camera/image_raw', Image, video_callback)
 	rate = rospy.Rate(300)
 	bridge = CvBridge()						#Create a CvBridge to convert img between OpenCV & ROS
 	decoder = h264decoder.H264Decoder()
@@ -20,9 +21,11 @@ def start(PORT, TOPIC):
 	server_socket.bind((('0.0.0.0'), PORT))
 	server_socket.listen(0)
 
+
 	connection = server_socket.accept()[0].makefile('rb')
 
 	while  not rospy.is_shutdown():
+		packet = rospy.wait_for_message('h264', H264Packet)
 		data = connection.read(1024)
 		if not data:
 			break
@@ -59,3 +62,6 @@ if __name__ == '__main__':
 			start(PORTS[i], TOPICS[i])
 	except rospy.ROSInterruptException:
 		pass
+
+decoder.release()
+cv2.destroyAllWindows()
