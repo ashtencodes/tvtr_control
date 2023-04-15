@@ -1,0 +1,5 @@
+<launch>
+	<node name="video_stream_opencv" pkg="cr_camera" type="video_stream_opencv_node" output="screen">
+		<param name= "video_stream_provider" value="rtsp://192.168.0.112:554:/stream1"/>
+	</node>
+<launch>
