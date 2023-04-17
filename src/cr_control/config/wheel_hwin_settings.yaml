@@ -8,7 +8,7 @@ wheel_hwin_settings:
   left_addr:            [ 128, 129 ] # note: implement
 
 roboclaw_settings:
-  serial_port:          "/dev/ttyTHS1"
+  serial_port:          "/dev/ttyTHS0"
   send_command_retries: 5
   encoder_timeout_ms:   100
   loop_frequency:       60

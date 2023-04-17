@@ -34,7 +34,7 @@ SOFTWARE. */
 #include <cstring>
 
 // GNC headers
-#include <gnc_control/roboclaw.h>
+#include <cr_control/roboclaw.h>
 
 Roboclaw::Roboclaw(RoboclawSettings* settings) {
     for (int i = 0; i < 256; i++)
@@ -142,6 +142,7 @@ void Roboclaw::GetBaudRate() {
         case 115200:
             ROS_INFO("Setting baud rate to 115200");
             baudRate = B115200;
+	    ROS_INFO_STREAM("baud rate = : " << baudRate);
             break;
         case 230400:
             ROS_INFO("Setting baud rate to 230400");
@@ -447,40 +448,31 @@ void Roboclaw::SendCommandToWheels(double* cmd) {
         else
             BackwardM1(0x80, cmd_send[0]);
 
-        if (cmd[1] >= 0)  // right_middle
+        if (cmd[1] >= 0)  // right_back
             ForwardM1(0x81, cmd_send[1]);
         else
             BackwardM1(0x81, cmd_send[1]);
 
-        if (cmd[2] >= 0)  // right_back
-            ForwardM1(0x82, cmd_send[2]);
+        if (cmd[2] >= 0)  // left_front
+            ForwardM2(0x80, cmd_send[2]);
         else
-            BackwardM1(0x82, cmd_send[2]);
+            BackwardM2(0x80, cmd_send[2]);
 
-        if (cmd[3] >= 0)  // left_front
-            ForwardM2(0x80, cmd_send[3]);
+        if (cmd[3] >= 0)  // left_back
+            ForwardM2(0x81, cmd_send[3]);
         else
-            BackwardM2(0x80, cmd_send[3]);
+            BackwardM2(0x81, cmd_send[3]);
 
-        if (cmd[4] >= 0)  // left_middle
-            ForwardM2(0x81, cmd_send[4]);
-        else
-            BackwardM2(0x81, cmd_send[4]);
-
-        if (cmd[5] >= 0)  // left_back
-            ForwardM2(0x82, cmd_send[5]);
-        else
-            BackwardM2(0x82, cmd_send[5]);
     }
 
     // if any of the cmd_vel are zero, increment counter
 
     if (cmd[0] == 0 || cmd[1] == 0 || cmd[2] == 0 ||
-        cmd[3] == 0 || cmd[4] == 0 || cmd[5] == 0) {
+        cmd[3] == 0) {
         zeroCmdVelCount++;
     } else {
         zeroCmdVelCount = 0;  // reset counter
-        cmd[0] = cmd[1] = cmd[2] = cmd[3] = cmd[4] = cmd[5] = 0;
+        cmd[0] = cmd[1] = cmd[2] = cmd[3] = 0;
     }
 }
 
