@@ -1,0 +1,12 @@
+{
+    "cmake.sourceDirectory": "/home/cuberover1/cuberover/src/cr_control",
+    "python.autoComplete.extraPaths": [
+        "/home/cuberover1/cuberover/devel/lib/python2.7/dist-packages",
+        "/opt/ros/melodic/lib/python2.7/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/cuberover1/cuberover/devel/lib/python2.7/dist-packages",
+        "/opt/ros/melodic/lib/python2.7/dist-packages"
+    ],
+    "C_Cpp.errorSquiggles": "disabled"
+}

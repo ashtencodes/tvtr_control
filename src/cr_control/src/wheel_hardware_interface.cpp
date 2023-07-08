@@ -22,6 +22,12 @@ SOFTWARE. */
 #include <string>
 #include <math.h>
 #include <cstdlib>
+// ros messages
+#include <std_msgs/Int32.h>
+#include <std_msgs/Float64.h>
+#include <cr_control/wheel_data.h>
+// for debugging
+#include <bitset>
 
 void GetYamlParameters(ros::NodeHandle*, WheelHwinSettings*, RoboclawSettings*);
 bool validateSettingsAndLogErrors(WheelHwinSettings*);
@@ -50,7 +56,8 @@ int main(int argc, char **argv)
     Roboclaw roboclaw(&roboclawSettings);
     ros::Rate rate(wheelSettings.rosLoopRate);
 
-    while (ros::ok()) {
+    while (ros::ok()) 
+    {
         wheelHwin.readFromWheels(&roboclaw);
         cm.update(wheelHwin.get_time(), wheelHwin.get_period());
         wheelHwin.writeToWheels(&roboclaw);
@@ -61,6 +68,7 @@ int main(int argc, char **argv)
 }
 
 void GetYamlParameters(ros::NodeHandle* nh, WheelHwinSettings *wheelSettings, RoboclawSettings *roboclawSettings) {
+
     for (int i = 0; i < 2; i++) {
         wheelSettings->rightWheelRoboclawAddresses[i] = 0;
         wheelSettings->leftWheelRoboclawAddresses[i] = 0;
@@ -135,6 +143,12 @@ bool validateSettingsAndLogErrors(WheelHwinSettings *wheelSettings)
 
 WheelHardwareInterface::WheelHardwareInterface(ros::NodeHandle* nh, WheelHwinSettings* wheelSettings)
 {
+    // data publishing setup
+    this->nodeHandle = nh;
+    wheelPosPub = nh->advertise<std_msgs::Int32>("/Wheels/position", 1000);
+    wheelVoltagePub = nh->advertise<std_msgs::Float64>("/Wheels/voltage", 1000);
+    wheelAmpPub = nh->advertise<std_msgs::Float64>("/Wheels/amps", 1000);
+
     this->wheelSettings = wheelSettings;
     ROS_INFO("Registering ros_control joint interfaces");
     registerStateHandlers();
@@ -147,49 +161,6 @@ WheelHardwareInterface::WheelHardwareInterface(ros::NodeHandle* nh, WheelHwinSet
 }
 
 WheelHardwareInterface::~WheelHardwareInterface() { }
-
-void WheelHardwareInterface::registerStateHandlers()
-{
-    ROS_INFO("Registering Joint State Interface");
-    hardware_interface::JointStateHandle wheelRightFront(
-        wheelSettings->rightWheelNames[0], &pos[0], &vel[0], &eff[0]);
-    jointStateInterface.registerHandle(wheelRightFront);
-
-    hardware_interface::JointStateHandle wheelRightBack(
-        wheelSettings->rightWheelNames[1], &pos[1], &vel[1], &eff[1]);
-    jointStateInterface.registerHandle(wheelRightBack);
-
-    hardware_interface::JointStateHandle wheelLeftFront(
-        wheelSettings->leftWheelNames[0], &pos[2], &vel[2], &eff[2]);
-    jointStateInterface.registerHandle(wheelLeftFront);
-
-    hardware_interface::JointStateHandle wheelLeftBack(
-        wheelSettings->leftWheelNames[1], &pos[3], &vel[3], &eff[3]);
-    jointStateInterface.registerHandle(wheelLeftBack);
-
-    registerInterface(&jointStateInterface);
-}
-void WheelHardwareInterface::registerJointVelocityHandlers()
-{
-    ROS_INFO("Registering Velocity Joint Interface");
-    hardware_interface::JointHandle wheelRightFront(
-        jointStateInterface.getHandle(wheelSettings->rightWheelNames[0]), &cmd[0]);
-    velocityJointInterface.registerHandle(wheelRightFront);
-
-    hardware_interface::JointHandle wheelRightBack(
-        jointStateInterface.getHandle(wheelSettings->rightWheelNames[1]), &cmd[1]);
-    velocityJointInterface.registerHandle(wheelRightBack);
-
-    hardware_interface::JointHandle wheelLeftFront(
-        jointStateInterface.getHandle(wheelSettings->leftWheelNames[0]), &cmd[2]);
-    velocityJointInterface.registerHandle(wheelLeftFront);
-
-    hardware_interface::JointHandle wheelLeftBack(
-        jointStateInterface.getHandle(wheelSettings->leftWheelNames[1]), &cmd[3]);
-    velocityJointInterface.registerHandle(wheelLeftBack);
-
-    registerInterface(&velocityJointInterface);
-}
 
 void WheelHardwareInterface::writeToWheels(Roboclaw *rb)
 {
@@ -209,6 +180,30 @@ void WheelHardwareInterface::readFromWheels(Roboclaw *rb)
         ROS_INFO_STREAM("READING JOINT STATES FROM MOTOR ENCODERS");
         printDebugInfo("VEL FROM", vel);
     }
+
+    // cr_control::wheel_data wheel_data_msg;
+
+    // msg.voltage = rb->ReadMainBatteryVoltage(129);
+    // RoboclawMotorCurrents motorCurrents = rb->ReadMotorCurrents(129);
+    // msg.m1Amps = motorCurrents.m1Current;
+    // msg.m2Amps = motorCurrents.m2Current;
+
+    // msg.m1EncoderCount = 0;
+    // msg.m2EncoderCount = 0;
+
+    std_msgs::Float64 voltage_msg;
+    voltage_msg.data = rb->ReadMainBatteryVoltage(129);
+    wheelVoltagePub.publish(voltage_msg);
+
+    std_msgs::Float64 m1Amp_msg;
+    RoboclawMotorCurrents currents = rb->ReadMotorCurrents(129);
+    m1Amp_msg.data = currents.m1Current;
+    wheelAmpPub.publish(m1Amp_msg);
+    //    uint32_t m1Pos = rb->ReadEncoderPositionM1(129);
+    //    std_msgs::Int32 msg;
+    //    msg.data = m1Pos;
+    //    wheelPosPub.publish(msg);
+    // ROS_INFO_STREAM("Encoder value: " << std::bitset<32>(m1Pos));
 }
 
 void WheelHardwareInterface::sendCommandToWheels(Roboclaw* rb)
@@ -217,27 +212,28 @@ void WheelHardwareInterface::sendCommandToWheels(Roboclaw* rb)
     scaleCommands();
 
     // prevent zero velocity spamming from ros_control
+
     if (zeroCmdVelCount <= wheelSettings->maxRetries) {
         // if positive, move motors forward. if negative, move backwards
         if (cmd[0] >= 0)  // right_front
-            rb->ForwardM1(0x80, cmdToSend[0]);
+            rb->ForwardM2(0x80, cmdToSend[0]);
         else
-            rb->BackwardM1(0x80, cmdToSend[0]);
+            rb->BackwardM2(0x80, cmdToSend[0]);
 
         if (cmd[1] >= 0)  // right_back
-            rb->ForwardM1(0x81, cmdToSend[1]);
+            rb->ForwardM2(0x81, cmdToSend[1]);
         else
-            rb->BackwardM1(0x81, cmdToSend[1]);
+            rb->BackwardM2(0x81, cmdToSend[1]);
 
         if (cmd[2] >= 0)  // left_front
-            rb->ForwardM2(0x80, cmdToSend[2]);
+            rb->ForwardM1(0x80, cmdToSend[2]);
         else
-            rb->BackwardM2(0x80, cmdToSend[2]);
+            rb->BackwardM1(0x80, cmdToSend[2]);
 
         if (cmd[3] >= 0)  // left_back
-            rb->ForwardM2(0x81, cmdToSend[3]);
+            rb->ForwardM1(0x81, cmdToSend[3]);
         else
-            rb->BackwardM2(0x81, cmdToSend[3]);
+            rb->BackwardM1(0x81, cmdToSend[3]);
 
     }
     // if any of the cmd_vel are zero, increment counter
@@ -299,4 +295,48 @@ void WheelHardwareInterface::printDebugInfo(std::string name, double* data) {
     ROS_INFO_STREAM(name << " RIGHT_BACK_WHEEL_JOINT " << data[1]);
     ROS_INFO_STREAM(name << " LEFT_FRONT_WHEEL_JOINT "   << data[2]);
     ROS_INFO_STREAM(name << " LEFT_BACK_WHEEL_JOINT "   << data[3]);
+}
+
+
+void WheelHardwareInterface::registerStateHandlers()
+{
+    ROS_INFO("Registering Joint State Interface");
+    hardware_interface::JointStateHandle wheelRightFront(
+        wheelSettings->rightWheelNames[0], &pos[0], &vel[0], &eff[0]);
+    jointStateInterface.registerHandle(wheelRightFront);
+
+    hardware_interface::JointStateHandle wheelRightBack(
+        wheelSettings->rightWheelNames[1], &pos[1], &vel[1], &eff[1]);
+    jointStateInterface.registerHandle(wheelRightBack);
+
+    hardware_interface::JointStateHandle wheelLeftFront(
+        wheelSettings->leftWheelNames[0], &pos[2], &vel[2], &eff[2]);
+    jointStateInterface.registerHandle(wheelLeftFront);
+
+    hardware_interface::JointStateHandle wheelLeftBack(
+        wheelSettings->leftWheelNames[1], &pos[3], &vel[3], &eff[3]);
+    jointStateInterface.registerHandle(wheelLeftBack);
+
+    registerInterface(&jointStateInterface);
+}
+void WheelHardwareInterface::registerJointVelocityHandlers()
+{
+    ROS_INFO("Registering Velocity Joint Interface");
+    hardware_interface::JointHandle wheelRightFront(
+        jointStateInterface.getHandle(wheelSettings->rightWheelNames[0]), &cmd[0]);
+    velocityJointInterface.registerHandle(wheelRightFront);
+
+    hardware_interface::JointHandle wheelRightBack(
+        jointStateInterface.getHandle(wheelSettings->rightWheelNames[1]), &cmd[1]);
+    velocityJointInterface.registerHandle(wheelRightBack);
+
+    hardware_interface::JointHandle wheelLeftFront(
+        jointStateInterface.getHandle(wheelSettings->leftWheelNames[0]), &cmd[2]);
+    velocityJointInterface.registerHandle(wheelLeftFront);
+
+    hardware_interface::JointHandle wheelLeftBack(
+        jointStateInterface.getHandle(wheelSettings->leftWheelNames[1]), &cmd[3]);
+    velocityJointInterface.registerHandle(wheelLeftBack);
+
+    registerInterface(&velocityJointInterface);
 }

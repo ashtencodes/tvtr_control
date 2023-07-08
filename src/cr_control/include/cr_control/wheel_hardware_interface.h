@@ -62,6 +62,10 @@ private:
     double vel[4];
     double eff[4];
     static constexpr double BILLION = 1000000000.0; // nanoseconds to seconds
+    ros::NodeHandle* nodeHandle;
+    ros::Publisher wheelPosPub; // TODO, create message type for wheel positions
+    ros::Publisher wheelVoltagePub; // TODO, create message type for wheel positions
+    ros::Publisher wheelAmpPub; // TODO, create message type for wheel positions
 };
 
 #endif
