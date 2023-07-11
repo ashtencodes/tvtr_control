@@ -145,9 +145,10 @@ WheelHardwareInterface::WheelHardwareInterface(ros::NodeHandle* nh, WheelHwinSet
 {
     // data publishing setup
     this->nodeHandle = nh;
-    wheelPosPub = nh->advertise<std_msgs::Int32>("/Wheels/position", 1000);
-    wheelVoltagePub = nh->advertise<std_msgs::Float64>("/Wheels/voltage", 1000);
-    wheelAmpPub = nh->advertise<std_msgs::Float64>("/Wheels/amps", 1000);
+    roverDataPub = nh->advertise<cr_control::wheel_data>("Wheel/data", 1000);
+    // wheelPosPub = nh->advertise<std_msgs::Int32>("/Wheels/position", 1000);
+    // wheelVoltagePub = nh->advertise<std_msgs::Float64>("/Wheels/voltage", 1000);
+    // wheelAmpPub = nh->advertise<std_msgs::Float64>("/Wheels/amps", 1000);
 
     this->wheelSettings = wheelSettings;
     ROS_INFO("Registering ros_control joint interfaces");
@@ -190,15 +191,31 @@ void WheelHardwareInterface::readFromWheels(Roboclaw *rb)
 
     // msg.m1EncoderCount = 0;
     // msg.m2EncoderCount = 0;
+    cr_control::wheel_data msg;
+    RoboclawMotorCurrents motorCurrentsFront = rb->ReadMotorCurrents(128);
+    RoboclawMotorCurrents motorCurrentsBack = rb->ReadMotorCurrents(129);
+    msg.m1AmpsFront = motorCurrentsFront.m1Current;
+    msg.m2AmpsFront = motorCurrentsFront.m2Current;
+    msg.m1AmpsBack = motorCurrentsBack.m1Current;
+    msg.m2AmpsBack = motorCurrentsBack.m2Current;
 
-    std_msgs::Float64 voltage_msg;
-    voltage_msg.data = rb->ReadMainBatteryVoltage(129);
-    wheelVoltagePub.publish(voltage_msg);
+    msg.voltageFront = rb->ReadMainBatteryVoltage(128);
+    msg.voltageBack = rb->ReadMainBatteryVoltage(129);
 
-    std_msgs::Float64 m1Amp_msg;
-    RoboclawMotorCurrents currents = rb->ReadMotorCurrents(129);
-    m1Amp_msg.data = currents.m1Current;
-    wheelAmpPub.publish(m1Amp_msg);
+    msg.m1EncoderCountFront = rb->ReadEncoderPositionM1(128);
+    msg.m2EncoderCountFront = rb->ReadEncoderPositionM2(128);
+    msg.m1EncoderCountBack = rb->ReadEncoderPositionM1(129);
+    msg.m2EncoderCountBack = rb->ReadEncoderPositionM2(129);
+
+    roverDataPub.publish(msg);
+    // std_msgs::Float64 voltage_msg;
+    // voltage_msg.data = rb->ReadMainBatteryVoltage(129);
+    // wheelVoltagePub.publish(voltage_msg);
+
+    // std_msgs::Float64 m1Amp_msg;
+    // RoboclawMotorCurrents currents = rb->ReadMotorCurrents(129);
+    // m1Amp_msg.data = currents.m1Current;
+    // wheelAmpPub.publish(m1Amp_msg);
     //    uint32_t m1Pos = rb->ReadEncoderPositionM1(129);
     //    std_msgs::Int32 msg;
     //    msg.data = m1Pos;

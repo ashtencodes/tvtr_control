@@ -11,4 +11,9 @@
 		type="spawner"  
 		output="screen"  
 		args="cr_velocity_controller cr_joint_publisher" />
+	<node name="cuberover_rosbag"
+		pkg="rosbag"
+		type="record"
+		output="screen"
+		args="-O /home/cuberover1/rosbagsCuberover/myRosBag /Wheel/data"/>
 </launch>

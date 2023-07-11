@@ -1,5 +1,10 @@
-int32 m1EncoderCount
-int32 m2EncoderCount
-float32 m1Amps
-float32 m2Amps
-float32 voltage
+int32 m1EncoderCountFront
+int32 m2EncoderCountFront
+int32 m1EncoderCountBack
+int32 m2EncoderCountBack
+float32 m1AmpsFront
+float32 m2AmpsFront
+float32 m1AmpsBack
+float32 m2AmpsBack
+float32 voltageFront
+float32 voltageBack

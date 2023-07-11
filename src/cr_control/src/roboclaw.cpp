@@ -456,9 +456,9 @@ float Roboclaw::ReadMainBatteryVoltage(uint8_t address)
 
     uint16_t voltage_temp; // read as tenths of a volt
     Copy_uint16(voltage_temp, &buf[0]);
+    float voltage = static_cast<float>(voltage_temp) / 10; // divide 10 to get correct voltage units
 
-    return static_cast<float>(voltage_temp); // divide 10 to get correct voltage units
-}
+    return voltage; }
 
 RoboclawMotorCurrents Roboclaw::ReadMotorCurrents(uint8_t address)
 {
