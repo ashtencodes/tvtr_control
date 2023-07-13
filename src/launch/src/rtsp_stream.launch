@@ -5,7 +5,7 @@
    <!-- node name and ros graph name -->
    <arg name="camera_name" value="rtsp2" />
    <!-- url of the video stream -->
-   <arg name="video_stream_provider" value="rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mov" />
+   <arg name="video_stream_provider" value="rtsp://192.168.0.243:8554/unicast" />
    <!-- set camera fps to (does nothing on a stream)-->
    <!-- <arg name="set_camera_fps" value="30"/> -->
    <!-- set buffer queue size of frame capturing to -->

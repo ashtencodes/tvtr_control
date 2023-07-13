@@ -1,0 +1,149 @@
+<robot name="cr_demo">
+
+<link name="base_link">
+    <visual>
+	<origin xyz="0 0 0" rpy="0 0 0"/>
+	<geometry>
+		<box size="0.3 0.5 0.10"/>
+	</geometry>
+    </visual>
+</link>
+
+<link name="link_left_front_wheel">    
+	
+    <collision>
+    	<origin rpy="0 0 0" xyz="0 0 0" />
+    	<geometry>
+        	<cylinder length="0.04" radius="0.1"/>
+      	</geometry>
+    </collision>
+    
+    <visual>
+    	<origin rpy="0 0 0" xyz="0 0 0"/>
+    	<geometry>
+        	<cylinder length="0.04" radius="0.1"/>
+      	</geometry>      
+    </visual>
+
+</link>
+
+<joint name="joint_left_front_wheel" type="continuous">
+    <child link="link_left_front_wheel" />
+    <parent link="base_link"/>
+    <origin xyz="0.2 0.15 -0.1" rpy="0 1.5707 1.5707"/>
+</joint>  
+
+<transmission name="left_front_wheel_trans">
+	<type>transmission_interface/SimpleTransmission</type>
+ 	<actuator name="motor1">
+        	<mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+        <joint name="joint_left_front_wheel">
+            <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+        </joint>
+</transmission>
+ 
+<link name="link_left_back_wheel">
+
+    <collision> 
+    	<origin rpy="0 0 0" xyz="0 0 0" />
+    	<geometry>
+        	<cylinder length="0.04" radius="0.1"/>
+      	</geometry>
+    </collision>
+   
+    <visual>
+    	<origin rpy="0 0 0" xyz="0 0 0"/>
+     	<geometry>
+        	<cylinder length="0.04" radius="0.1"/>
+      	</geometry>      
+    </visual>
+
+</link>
+
+<joint name="joint_left_back_wheel" type="continuous">
+	<child link="link_left_back_wheel"/>
+ 	<parent link="base_link"/>
+ 	<origin xyz="-0.2 0.15 -0.1" rpy="0 1.5707 1.5707"/>
+</joint>
+
+<transmission name="left_back_wheel_trans">
+        <type>transmission_interface/SimpleTransmission</type>
+        <actuator name="motor1">
+                <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+        <joint name="joint_left_back_wheel">
+            <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+        </joint>
+</transmission>
+
+<link name="link_right_front_wheel">
+
+    <collision>
+    	<origin rpy="0 0 0" xyz="0 0 0" />
+    	<geometry>
+        	<cylinder length="0.04" radius="0.1"/>
+      	</geometry>
+    </collision>
+    
+    <visual>
+    	<origin rpy="0 0 0" xyz="0 0 0"/>
+    	<geometry>
+        	<cylinder length="0.04" radius="0.1"/>
+      	</geometry>      
+    </visual>
+
+</link>
+
+<joint name="joint_right_front_wheel" type="continuous">
+	<child link="link_right_front_wheel"/>
+ 	<parent link="base_link"/>
+ 	<origin xyz="0.2 -0.15 -0.1" rpy="0 1.5707 1.5707"/>
+</joint>
+
+<transmission name="right_front_wheel_trans">
+        <type>transmission_interface/SimpleTransmission</type>
+        <actuator name="motor1">
+                <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+        <joint name="joint_right_front_wheel">
+            <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+        </joint>
+</transmission>
+
+<link name="link_right_back_wheel">
+
+    <collision>
+      	<origin rpy="0 0 0" xyz="0 0 0" />
+      	<geometry>
+        	<cylinder length="0.04" radius="0.1"/>
+      	</geometry>
+    </collision>
+    
+    <visual name="link_right_back_wheel_visual">
+      	<origin rpy="0 0 0" xyz="0 0 0"/>
+      	<geometry>
+        	<cylinder length="0.04" radius="0.1"/>
+      	</geometry>      
+    </visual>
+
+ </link>
+
+<joint name="joint_right_back_wheel" type="continuous">
+  	<child link="link_right_back_wheel"/>
+  	<parent link="base_link"/>
+    	<origin xyz="-0.2 -0.15 -0.1" rpy="0 1.5707 1.5707"/>
+</joint>
+
+<transmission name="right_back_wheel_trans">
+        <type>transmission_interface/SimpleTransmission</type>
+        <actuator name="motor1">
+                <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+        <joint name="joint_right_back_wheel">
+            <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+        </joint>
+</transmission>
+
+</robot>
+

@@ -1,0 +1,15 @@
+<launch>
+	<rosparam command="load" file="$(find cr_control)/config/control.yaml"/>
+	<rosparam command="load" file="$(find cr_control)/config/wheel_hwin_settings.yaml"/>
+	<!-- Launch hardware interface then add the controller manager and controllers-->
+
+	<node name="wheel_hardware_interface" 
+		pkg="cr_control" 
+		type="wheel_hardware_interface" 
+		output="screen"/>
+	<node name="controller_manager_node" 
+		pkg="controller_manager"
+		type="spawner"  
+		output="screen"  
+		args="cr_velocity_controller cr_joint_publisher" />
+</launch>

@@ -1,9 +1,0 @@
-<launch>
-
-	<node pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py" name="robot1_teleop" output="screen">
-		<remap from="/cmd_vel" to="/robot1_velocity_controller/cmd_vel" />
-		<param name="speed" type="double" value="0.25"/>
-		<param name="turn" type="double" value="0.4"/>
-	</node>
-
-</launch>

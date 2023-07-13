@@ -1,8 +1,0 @@
-<launch>
-<group ns="robot_1">
-
-	<rosparam command= "load" file="$(find cr_control)/config/control1.yaml"/>
-	<node name="controller_manager_node" pkg="controller_manager" type="spawner" output="screen" args="robot1_joint_publisher robot1_velocity_controller"/>
-
-</group>
-</launch>
