@@ -1,0 +1,5 @@
+<launch>
+    <node name="cr_control_launch_script"
+            pkg="cr_control"
+            type="start_rosbag.sh"/>
+</launch>

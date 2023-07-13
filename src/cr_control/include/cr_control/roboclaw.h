@@ -40,6 +40,8 @@ struct RoboclawSettings
     const uint8_t m1ReadEncoderSpeed      = 18;
     const uint8_t m2ReadEncoderSpeed      = 19;
     const uint8_t readMainBatteryVoltage  = 24;
+    const uint8_t m1DriveSpeed = 35;
+    const uint8_t m2DriveSpeed = 36;
     const uint8_t m1DriveSpeedAccel = 38;
     const uint8_t m2DriveSpeedAccel = 39;
     const uint8_t readMotorCurrents = 49;
@@ -80,16 +82,18 @@ class Roboclaw
     void ForwardM2(uint8_t address, uint8_t value);
     void BackwardM1(uint8_t address, uint8_t value);
     void BackwardM2(uint8_t address, uint8_t value);
-    void DriveSpeedAccelM1(uint8_t address, uint8_t acceleration, uint8_t speed);
-    void DriveSpeedAccelM2(uint8_t address, uint8_t acceleration, uint8_t speed);
+    void DriveSpeedM1(uint8_t address, int32_t speed);
+    void DriveSpeedM2(uint8_t address, int32_t speed);
+    void DriveSpeedAccelM1(uint8_t address, int32_t acceleration, int32_t speed);
+    void DriveSpeedAccelM2(uint8_t address, int32_t acceleration, int32_t speed);
     RoboclawPidQppsSettings ReadPidQppsSettingsM1(uint8_t address);
     RoboclawPidQppsSettings ReadPidQppsSettingsM2(uint8_t address);
     float ReadMainBatteryVoltage(uint8_t address);
     RoboclawMotorCurrents ReadMotorCurrents(uint8_t address);
     int32_t ReadEncoderPositionM1(uint8_t address);
     int32_t ReadEncoderPositionM2(uint8_t address);
-    void ReadEncoderSpeedM1(uint8_t address);
-    void ReadEncoderSpeedM2(uint8_t address);
+    int32_t ReadEncoderSpeedM1(uint8_t address);
+    int32_t ReadEncoderSpeedM2(uint8_t address);
     void SetPositionM1(uint8_t address, uint32_t value);
     void SetPositionM2(uint8_t address, int32_t value);
 
@@ -104,8 +108,11 @@ class Roboclaw
     uint8_t ScaleCommand(double cmd);
     uint16_t CalculateChecksum(uint8_t* packet, int nBytes);
     uint32_t RecombineBuffer(uint8_t* buf);
-    void Copy_uint16(uint16_t& to, uint8_t* from);
-    void Copy_uint32(uint32_t& to, uint8_t* from);
+    void Copy_uint16_from_bytes(uint16_t& to, uint8_t* from);
+    void Copy_uint32_from_bytes(uint32_t& to, uint8_t* from);
+    void Copy_int16_from_bytes(int16_t& to, uint8_t* from);
+    void Copy_int32_from_bytes(int32_t& to, uint8_t* from);
+    void Copy_bytes_from_int32(uint8_t* to, int32_t from);
 
     termios tty;
     RoboclawSettings* settings;

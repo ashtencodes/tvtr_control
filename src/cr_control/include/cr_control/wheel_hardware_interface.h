@@ -20,6 +20,8 @@ struct WheelHwinSettings
     int rosLoopRate = 10;
     int maxRetries = 3;
     bool debugMode = false;
+    float encoderTicksPerRadian;
+    float radiansPerEncoderTick;
 };
 
 //might need serial to send commands to the hardware
@@ -46,9 +48,11 @@ private:
     void printDebugInfo(std::string name, double* data);
 
     void sendCommandToWheels(Roboclaw *);
+    void driveWithSpeed(Roboclaw *);
     void scaleCommands();
     void getVelocityFromEncoders(); // TODO important for arm
-    double convertPulsesToRadians(double vel); 
+    float encoderCountToRadians(int32_t encoderCount);
+    int32_t radiansToEncoderCount(float radians);
 
     ros::Duration elapsed_time;
     struct timespec last_time;
@@ -64,6 +68,7 @@ private:
     static constexpr double BILLION = 1000000000.0; // nanoseconds to seconds
     ros::NodeHandle* nodeHandle;
     ros::Publisher roverDataPub;
+    ros::Publisher test;
     // ros::Publisher wheelPosPub; // TODO, create message type for wheel positions
     // ros::Publisher wheelVoltagePub; // TODO, create message type for wheel positions
     // ros::Publisher wheelAmpPub; // TODO, create message type for wheel positions

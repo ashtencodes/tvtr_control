@@ -6,10 +6,13 @@ wheel_hwin_settings:
   left_wheel:           ['joint_left_front_wheel', 'joint_left_back_wheel']
   right_addr:           [ 128, 129 ] # note: implement
   left_addr:            [ 128, 129 ] # note: implement
+  motor_data:
+    encoderTicks_per_radian: 1288.848
+    radians_per_encoderTick: 0.0007758867 
 
 roboclaw_settings:
   serial_port:          "/dev/ttyS0"
   send_command_retries: 3
-  encoder_timeout_ms:   20
+  encoder_timeout_ms:   15
   loop_frequency:       30
   baud_rate:            115200

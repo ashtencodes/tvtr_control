@@ -2,6 +2,7 @@
 	<rosparam command="load" file="$(find cr_control)/config/control.yaml"/>
 	<rosparam command="load" file="$(find cr_control)/config/wheel_hwin_settings.yaml"/>
 	<!-- Launch hardware interface then add the controller manager and controllers-->
+
 	<node name="wheel_hardware_interface" 
 		pkg="cr_control" 
 		type="wheel_hardware_interface" 
@@ -11,9 +12,4 @@
 		type="spawner"  
 		output="screen"  
 		args="cr_velocity_controller cr_joint_publisher" />
-	<node name="cuberover_rosbag"
-		pkg="rosbag"
-		type="record"
-		output="screen"
-		args="-O /home/cuberover1/rosbagsCuberover/myRosBag /Wheel/data"/>
 </launch>

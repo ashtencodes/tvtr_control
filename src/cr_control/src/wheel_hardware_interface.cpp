@@ -99,6 +99,9 @@ void GetYamlParameters(ros::NodeHandle* nh, WheelHwinSettings *wheelSettings, Ro
 
     }
 
+    nh->getParam("/wheel_hwin_settings/motor_data/encoderTicks_per_radian", wheelSettings->encoderTicksPerRadian);
+    nh->getParam("/wheel_hwin_settings/motor_data/radians_per_encoderTick", wheelSettings->radiansPerEncoderTick);
+
     bool errorFlag = validateSettingsAndLogErrors(wheelSettings);
 
     if (errorFlag)
@@ -146,6 +149,7 @@ WheelHardwareInterface::WheelHardwareInterface(ros::NodeHandle* nh, WheelHwinSet
     // data publishing setup
     this->nodeHandle = nh;
     roverDataPub = nh->advertise<cr_control::wheel_data>("Wheel/data", 1000);
+    test = nh->advertise<std_msgs::Float64>("WheelVelocity", 1000);
     // wheelPosPub = nh->advertise<std_msgs::Int32>("/Wheels/position", 1000);
     // wheelVoltagePub = nh->advertise<std_msgs::Float64>("/Wheels/voltage", 1000);
     // wheelAmpPub = nh->advertise<std_msgs::Float64>("/Wheels/amps", 1000);
@@ -170,7 +174,12 @@ void WheelHardwareInterface::writeToWheels(Roboclaw *rb)
         printDebugInfo("SENDING CMD_VEL TO", cmd);
     }
 
-    sendCommandToWheels(rb);
+    // need to divide cmd by 10 because diff drive controller 
+    // multiplies topic input by 10 for some reason
+    for (int i = 0; i < 4; i++)
+        cmd[i] /= 10;
+    // sendCommandToWheels(rb);
+    driveWithSpeed(rb);
 }
 
 void WheelHardwareInterface::readFromWheels(Roboclaw *rb)
@@ -194,18 +203,22 @@ void WheelHardwareInterface::readFromWheels(Roboclaw *rb)
     cr_control::wheel_data msg;
     RoboclawMotorCurrents motorCurrentsFront = rb->ReadMotorCurrents(128);
     RoboclawMotorCurrents motorCurrentsBack = rb->ReadMotorCurrents(129);
-    msg.m1AmpsFront = motorCurrentsFront.m1Current;
-    msg.m2AmpsFront = motorCurrentsFront.m2Current;
-    msg.m1AmpsBack = motorCurrentsBack.m1Current;
-    msg.m2AmpsBack = motorCurrentsBack.m2Current;
+    msg.m1FrontAmps = motorCurrentsFront.m1Current;
+    msg.m2FrontAmps = motorCurrentsFront.m2Current;
+    msg.m1BackAmps = motorCurrentsBack.m1Current;
+    msg.m2BackAmps = motorCurrentsBack.m2Current;
 
     msg.voltageFront = rb->ReadMainBatteryVoltage(128);
     msg.voltageBack = rb->ReadMainBatteryVoltage(129);
 
-    msg.m1EncoderCountFront = rb->ReadEncoderPositionM1(128);
-    msg.m2EncoderCountFront = rb->ReadEncoderPositionM2(128);
-    msg.m1EncoderCountBack = rb->ReadEncoderPositionM1(129);
-    msg.m2EncoderCountBack = rb->ReadEncoderPositionM2(129);
+    msg.m1FrontVelocity = encoderCountToRadians(rb->ReadEncoderSpeedM1(128));
+    msg.m2FrontVelocity = encoderCountToRadians(rb->ReadEncoderSpeedM2(128));
+    msg.m1BackVelocity = encoderCountToRadians(rb->ReadEncoderSpeedM1(129));
+    msg.m2BackVelocity = encoderCountToRadians(rb->ReadEncoderSpeedM2(129));
+
+    std_msgs::Float64 velocityMsg;
+    velocityMsg.data = encoderCountToRadians(rb->ReadEncoderSpeedM1(128));
+    test.publish(velocityMsg);
 
     roverDataPub.publish(msg);
     // std_msgs::Float64 voltage_msg;
@@ -228,8 +241,9 @@ void WheelHardwareInterface::sendCommandToWheels(Roboclaw* rb)
     // convert cmd_vel to a usable command between 0-127
     scaleCommands();
 
-    // prevent zero velocity spamming from ros_control
+    
 
+    // prevent zero velocity spamming from ros_control
     if (zeroCmdVelCount <= wheelSettings->maxRetries) {
         // if positive, move motors forward. if negative, move backwards
         if (cmd[0] >= 0)  // right_front
@@ -264,6 +278,32 @@ void WheelHardwareInterface::sendCommandToWheels(Roboclaw* rb)
     }
 }
 
+void WheelHardwareInterface::driveWithSpeed(Roboclaw *rb)
+{
+    int32_t cmd_to_send[4];
+    for (int i = 0; i < 4; i++)
+    {
+        cmd_to_send[i] = radiansToEncoderCount(cmd[i]);
+    }
+
+    // if (cmd[0] != 0)
+        rb->DriveSpeedM2(128, cmd_to_send[0]);
+    // if (cmd[0] != 0)
+        rb->DriveSpeedM2(129, cmd_to_send[1]);
+    // if (cmd[0] != 0)
+        rb->DriveSpeedM1(128, cmd_to_send[2]);
+    // if (cmd[0] != 0)
+        rb->DriveSpeedM1(129, cmd_to_send[3]);
+
+    if (cmd[0] == 0 || cmd[1] == 0 || cmd[2] == 0 ||
+        cmd[3] == 0) {
+        zeroCmdVelCount++;
+    } else {
+        zeroCmdVelCount = 0;  // reset counter
+        cmd[0] = cmd[1] = cmd[2] = cmd[3] = 0;
+    }
+}
+
 void WheelHardwareInterface::scaleCommands()
 {
     // TODO scaled the commands from 0-126 to send to roboclaw
@@ -284,12 +324,15 @@ void WheelHardwareInterface::getVelocityFromEncoders()
     // velocity = distance / time
 }
 
-double WheelHardwareInterface::convertPulsesToRadians(double cmd)
+float WheelHardwareInterface::encoderCountToRadians(int32_t encoderCount)
 {
-    // TODO conversion rate from motor encoder value to distance (circumference of wheel)
-    return 0;
+    return ((float)encoderCount) * wheelSettings->radiansPerEncoderTick;
 }
 
+int32_t WheelHardwareInterface::radiansToEncoderCount(float radians)
+{
+    return radians * wheelSettings->encoderTicksPerRadian;
+}
 
 ros::Time WheelHardwareInterface::get_time()
 {

@@ -1,0 +1,11 @@
+<launch>
+	<arg name="time_now" default="temp" />
+
+	<include file="$(find cr_control)/launch/cr_control.launch"/>
+
+	<node name="cuberover_rosbag"
+		pkg="rosbag"
+		type="record"
+		output="screen"
+		args="-O $(env HOME)/rosbagsCuberover/trial_$(arg time_now).bag /Wheel/data"/>
+</launch>
