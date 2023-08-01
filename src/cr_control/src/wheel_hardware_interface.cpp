@@ -31,6 +31,9 @@ SOFTWARE. */
 
 void GetYamlParameters(ros::NodeHandle*, WheelHwinSettings*, RoboclawSettings*);
 bool validateSettingsAndLogErrors(WheelHwinSettings*);
+void CalibrateIMU(MPU6050& imu);
+
+MPU6050 mpu6050[2] = {MPU6050(0x68, 0), MPU6050(0x68, 1)};
 
 int main(int argc, char **argv)
 {
@@ -47,7 +50,7 @@ int main(int argc, char **argv)
     GetYamlParameters(&nh, &wheelSettings, &roboclawSettings);
 
     ROS_INFO("Initializing wheel hardware interface");
-    WheelHardwareInterface wheelHwin(&nh, &wheelSettings);
+    WheelHardwareInterface wheelHwin(&nh, &wheelSettings, &mpu6050[0]);
 
     ROS_INFO("Initializing controller manager");
     controller_manager::ControllerManager cm(&wheelHwin);
@@ -144,12 +147,19 @@ bool validateSettingsAndLogErrors(WheelHwinSettings *wheelSettings)
     return errorFlag;
 }
 
-WheelHardwareInterface::WheelHardwareInterface(ros::NodeHandle* nh, WheelHwinSettings* wheelSettings)
+WheelHardwareInterface::WheelHardwareInterface(ros::NodeHandle* nh, WheelHwinSettings* wheelSettings, MPU6050 imu[])
 {
     // data publishing setup
     this->nodeHandle = nh;
     roverDataPub = nh->advertise<cr_control::wheel_data>("Wheel/data", 1000);
     test = nh->advertise<std_msgs::Float64>("WheelVelocity", 1000);
+
+    // store and calibrate imu
+    this->imu[0] = &imu[0];
+    this->imu[1] = &imu[1];
+    calibrateImu(0);
+    calibrateImu(1);
+
     // wheelPosPub = nh->advertise<std_msgs::Int32>("/Wheels/position", 1000);
     // wheelVoltagePub = nh->advertise<std_msgs::Float64>("/Wheels/voltage", 1000);
     // wheelAmpPub = nh->advertise<std_msgs::Float64>("/Wheels/amps", 1000);
@@ -220,28 +230,42 @@ void WheelHardwareInterface::readFromWheels(Roboclaw *rb)
     velocityMsg.data = encoderCountToRadians(rb->ReadEncoderSpeedM1(128));
     test.publish(velocityMsg);
 
-    roverDataPub.publish(msg);
-    // std_msgs::Float64 voltage_msg;
-    // voltage_msg.data = rb->ReadMainBatteryVoltage(129);
-    // wheelVoltagePub.publish(voltage_msg);
+    // Get imu data
+    float ax[2], ay[2], az[2], gr[2], gp[2], gy[2]; // acceleration x,y,z and gyro roll (x), pitch (y), yaw (z)
+    for (int i = 0; i < 2; i++)
+    {
+        getImuAcceleration(i, ax[i], ay[i], az[i]);
+        getImuGyro(i, gr[i], gp[i], gy[i]); 
+        // convert acceleration values from units of g -> m/s^2 (g = 9.8m/s^2)
+        ax[i] *= 9.8;
+        ay[i] *= 9.8;
+        az[i] *= 9.8;
+        // convert gyro values from units degrees/sec -> radians/sec (1 degree = pi/180 radians)
+        gr[i] *= (M_PI / 180.0f);
+        gp[i] *= (M_PI / 180.0f);
+        gy[i] *= (M_PI / 180.0f);
+    }
+    msg.xAccelImu0 = ax[0];
+    msg.yAccelImu0 = ay[0];
+    msg.zAccelImu0 = az[0];
+    msg.rollGyroImu0 = gr[0];
+    msg.pitchGyroImu0 = gp[0];
+    msg.yawGyroImu0 = gy[0];
 
-    // std_msgs::Float64 m1Amp_msg;
-    // RoboclawMotorCurrents currents = rb->ReadMotorCurrents(129);
-    // m1Amp_msg.data = currents.m1Current;
-    // wheelAmpPub.publish(m1Amp_msg);
-    //    uint32_t m1Pos = rb->ReadEncoderPositionM1(129);
-    //    std_msgs::Int32 msg;
-    //    msg.data = m1Pos;
-    //    wheelPosPub.publish(msg);
-    // ROS_INFO_STREAM("Encoder value: " << std::bitset<32>(m1Pos));
+    msg.xAccelImu1 = ax[1];
+    msg.yAccelImu1 = ay[1];
+    msg.zAccelImu1 = az[1];
+    msg.rollGyroImu1 = gr[1];
+    msg.pitchGyroImu1 = gp[1];
+    msg.yawGyroImu1 = gy[1];
+
+    roverDataPub.publish(msg);
 }
 
 void WheelHardwareInterface::sendCommandToWheels(Roboclaw* rb)
 {
     // convert cmd_vel to a usable command between 0-127
     scaleCommands();
-
-    
 
     // prevent zero velocity spamming from ros_control
     if (zeroCmdVelCount <= wheelSettings->maxRetries) {
@@ -295,13 +319,7 @@ void WheelHardwareInterface::driveWithSpeed(Roboclaw *rb)
     // if (cmd[0] != 0)
         rb->DriveSpeedM1(129, cmd_to_send[3]);
 
-    if (cmd[0] == 0 || cmd[1] == 0 || cmd[2] == 0 ||
-        cmd[3] == 0) {
-        zeroCmdVelCount++;
-    } else {
-        zeroCmdVelCount = 0;  // reset counter
-        cmd[0] = cmd[1] = cmd[2] = cmd[3] = 0;
-    }
+    cmd[0] = cmd[1] = cmd[2] = cmd[3] = 0;
 }
 
 void WheelHardwareInterface::scaleCommands()
@@ -399,4 +417,56 @@ void WheelHardwareInterface::registerJointVelocityHandlers()
     velocityJointInterface.registerHandle(wheelLeftBack);
 
     registerInterface(&velocityJointInterface);
+}
+
+void WheelHardwareInterface::calibrateImu(uint8_t imu_index)
+{
+    ROS_INFO_STREAM("Calibrating MPU6050 IMU");
+    float ax[1000], ay[1000], az[1000], gr[1000], gp[1000], gy[1000];
+    for (int i = 0; i < 1000; i++)
+    {
+        imu[imu_index]->getAccel(&ax[i], &ay[i], &az[i]);
+        imu[imu_index]->getGyro(&gr[i], &gp[i], &gy[i]);
+        usleep(100); //0.001sec
+    }
+
+    ROS_INFO_STREAM("Calculating Offsets");
+    float ax_sum = 0.0f;
+    float ay_sum = 0.0f;
+    float az_sum = 0.0f;
+    float gr_sum = 0.0f;
+    float gp_sum = 0.0f;
+    float gy_sum = 0.0f;
+    for (int i = 0; i < 1000; i++)
+    {
+        ax_sum += ax[i];
+        ay_sum += ay[i];
+        az_sum += az[i];
+        gr_sum += gr[i];
+        gp_sum += gp[i];
+        gy_sum += gy[i];
+    }
+    ax_offset[imu_index] = ax_sum / 1000.0f;
+    ay_offset[imu_index] = ay_sum / 1000.0f;
+    az_offset[imu_index] = az_sum / 1000.0f;
+    gr_offset[imu_index] = gr_sum / 1000.0f;
+    gp_offset[imu_index] = gp_sum / 1000.0f;
+    gy_offset[imu_index] = gy_sum / 1000.0f;
+    ROS_INFO_STREAM("Calibration Complete");
+}
+
+void WheelHardwareInterface::getImuAcceleration(uint8_t imu_index, float& ax, float& ay, float& az)
+{
+    imu[imu_index]->getAccel(&ax, &ay, &az);
+    ax -= ax_offset[imu_index];
+    ay -= ay_offset[imu_index];
+    az -= az_offset[imu_index];
+}
+
+void WheelHardwareInterface::getImuGyro(uint8_t imu_index, float& gr, float& gp, float& gy)
+{
+    imu[imu_index]->getGyro(&gr, &gp, &gy);
+    gr -= gr_offset[imu_index];
+    gp -= gp_offset[imu_index];
+    gy -= gy_offset[imu_index];
 }

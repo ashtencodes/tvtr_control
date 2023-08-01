@@ -9,6 +9,7 @@
 #include <ros/ros.h>
 #include <string>
 #include <cr_control/roboclaw.h>
+#include <MPU6050.h>
 
 struct WheelHwinSettings
 {
@@ -28,7 +29,7 @@ struct WheelHwinSettings
 class WheelHardwareInterface : public hardware_interface::RobotHW
 {
 public:
-    WheelHardwareInterface(ros::NodeHandle *, WheelHwinSettings*);
+    WheelHardwareInterface(ros::NodeHandle *, WheelHwinSettings*, MPU6050 imu[]);
     ~WheelHardwareInterface();
     void writeToWheels(Roboclaw*);
     void readFromWheels(Roboclaw*);
@@ -53,6 +54,9 @@ private:
     void getVelocityFromEncoders(); // TODO important for arm
     float encoderCountToRadians(int32_t encoderCount);
     int32_t radiansToEncoderCount(float radians);
+    void calibrateImu(uint8_t imu_index);
+    void getImuAcceleration(uint8_t imu_index, float& ax, float& ay, float& az);
+    void getImuGyro(uint8_t imu_index, float& gr, float& gp, float& gz); // gyro roll, pitch, yaw
 
     ros::Duration elapsed_time;
     struct timespec last_time;
@@ -69,6 +73,14 @@ private:
     ros::NodeHandle* nodeHandle;
     ros::Publisher roverDataPub;
     ros::Publisher test;
+
+    MPU6050 *imu[2];  // imu for gyroscope and accelerometer
+    float ax_offset[2]; // acceleration offset of x axis (for imu calibration)
+    float ay_offset[2]; // acceleration offset of y axis (for imu calibration)
+    float az_offset[2]; // acceleration offset of z axis (for imu calibration)
+    float gr_offset[2]; // gyro speed offset for roll (x) (imu calibration)
+    float gp_offset[2]; // gyro speed offset for pitch (y) (imu calibration)
+    float gy_offset[2]; // gyro speed offset for yaw (z) (imu calibration)
     // ros::Publisher wheelPosPub; // TODO, create message type for wheel positions
     // ros::Publisher wheelVoltagePub; // TODO, create message type for wheel positions
     // ros::Publisher wheelAmpPub; // TODO, create message type for wheel positions

@@ -498,7 +498,7 @@ float Roboclaw::ReadMainBatteryVoltage(uint8_t address)
 
     uint16_t voltage_temp; // read as tenths of a volt
     Copy_uint16_from_bytes(voltage_temp, &buf[0]);
-    float voltage = static_cast<float>(voltage_temp) / 10; // divide 10 to get correct voltage units
+    float voltage = static_cast<float>(voltage_temp) / 10.0f; // divide 10 to get correct voltage units
 
     return voltage; }
 

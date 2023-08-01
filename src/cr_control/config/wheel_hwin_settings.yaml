@@ -1,7 +1,7 @@
 wheel_hwin_settings:
   debug_mode:           False
   send_command_retries: 3
-  ros_loop_rate:        30
+  ros_loop_rate:        100
   right_wheel:          ['joint_right_front_wheel', 'joint_right_back_wheel']
   left_wheel:           ['joint_left_front_wheel', 'joint_left_back_wheel']
   right_addr:           [ 128, 129 ] # note: implement
@@ -14,5 +14,5 @@ roboclaw_settings:
   serial_port:          "/dev/ttyS0"
   send_command_retries: 3
   encoder_timeout_ms:   15
-  loop_frequency:       30
+  loop_frequency:       100
   baud_rate:            115200

@@ -127,8 +127,13 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-include
-  ${catkin_INCLUDE_DIRS}
+ include ${catkin_INCLUDE_DIRS} 
+)
+
+include_directories(
+  # lib/mpu925x-driver/inc
+  # lib/libi2c/include
+  lib/mpu6050
 )
 
 ## Declare a C++ library
@@ -145,9 +150,25 @@ include
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/cr_control_node.cpp)
+# find_package(i2c)
 
-add_executable(wheel_hardware_interface src/wheel_hardware_interface.cpp src/roboclaw.cpp)
-target_link_libraries(wheel_hardware_interface ${catkin_LIBRARIES})
+add_executable(test_imu 
+  src/test_imu.cpp 
+  # lib/libi2c/include/i2c/i2c.h
+  lib/mpu6050/MPU6050.cpp
+)
+target_link_libraries(test_imu ${catkin_LIBRARIES} i2c)
+link_directories(${catkin_LIBRARY_DIRS})
+
+add_executable(wheel_hardware_interface 
+  src/wheel_hardware_interface.cpp 
+  src/roboclaw.cpp
+  lib/mpu6050/MPU6050.cpp
+)
+target_link_libraries(wheel_hardware_interface 
+  ${catkin_LIBRARIES}
+  i2c
+)
 link_directories(${catkin_LIBRARY_DIRS})
 
 ## Rename C++ executable without prefix
