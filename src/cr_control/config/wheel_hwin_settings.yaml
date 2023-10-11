@@ -7,8 +7,7 @@ wheel_hwin_settings:
   right_addr:           [ 128, 129 ] # note: implement
   left_addr:            [ 128, 129 ] # note: implement
   motor_data:
-    encoderTicks_per_radian: 2577.696
-    radians_per_encoderTick: 0.00038794335
+    encoderTicks_per_revolution: 17700.624
 
 roboclaw_settings:
   serial_port:          "/dev/ttyS0"

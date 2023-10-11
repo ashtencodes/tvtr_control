@@ -21,8 +21,8 @@ struct WheelHwinSettings
     int rosLoopRate = 10;
     int maxRetries = 3;
     bool debugMode = false;
-    float encoderTicksPerRadian;
-    float radiansPerEncoderTick;
+    float encoderTicksPerRevolution;
+    float revolutionsPerEncoderTick;
 };
 
 //might need serial to send commands to the hardware
@@ -52,8 +52,8 @@ private:
     void driveWithSpeed(Roboclaw *);
     void scaleCommands();
     void getVelocityFromEncoders(); // TODO important for arm
-    float encoderCountToRadians(int32_t encoderCount);
-    int32_t radiansToEncoderCount(float radians);
+    float encoderCountToRevolutions(int32_t encoderCount);
+    int32_t revolutionsToEncoderCount(float revolutions);
     void calibrateImu(uint8_t imu_index);
     void getImuAcceleration(uint8_t imu_index, float& ax, float& ay, float& az);
     void getImuGyro(uint8_t imu_index, float& gr, float& gp, float& gz); // gyro roll, pitch, yaw

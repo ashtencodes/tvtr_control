@@ -102,8 +102,8 @@ void GetYamlParameters(ros::NodeHandle* nh, WheelHwinSettings *wheelSettings, Ro
 
     }
 
-    nh->getParam("/wheel_hwin_settings/motor_data/encoderTicks_per_radian", wheelSettings->encoderTicksPerRadian);
-    nh->getParam("/wheel_hwin_settings/motor_data/radians_per_encoderTick", wheelSettings->radiansPerEncoderTick);
+    nh->getParam("/wheel_hwin_settings/motor_data/encoderTicks_per_revolution", wheelSettings->encoderTicksPerRevolution);
+    wheelSettings->revolutionsPerEncoderTick = 1.0f / wheelSettings->encoderTicksPerRevolution;
 
     bool errorFlag = validateSettingsAndLogErrors(wheelSettings);
 
@@ -201,15 +201,6 @@ void WheelHardwareInterface::readFromWheels(Roboclaw *rb)
         printDebugInfo("VEL FROM", vel);
     }
 
-    // cr_control::wheel_data wheel_data_msg;
-
-    // msg.voltage = rb->ReadMainBatteryVoltage(129);
-    // RoboclawMotorCurrents motorCurrents = rb->ReadMotorCurrents(129);
-    // msg.m1Amps = motorCurrents.m1Current;
-    // msg.m2Amps = motorCurrents.m2Current;
-
-    // msg.m1EncoderCount = 0;
-    // msg.m2EncoderCount = 0;
     cr_control::wheel_data msg;
     RoboclawMotorCurrents motorCurrentsFront = rb->ReadMotorCurrents(128);
     RoboclawMotorCurrents motorCurrentsBack = rb->ReadMotorCurrents(129);
@@ -221,18 +212,14 @@ void WheelHardwareInterface::readFromWheels(Roboclaw *rb)
     msg.voltageFront = rb->ReadMainBatteryVoltage(128);
     msg.voltageBack = rb->ReadMainBatteryVoltage(129);
 
-    msg.m1FrontVelocity = encoderCountToRadians(rb->ReadEncoderSpeedM1(128));
-    msg.m2FrontVelocity = encoderCountToRadians(rb->ReadEncoderSpeedM2(128));
-    msg.m1BackVelocity = encoderCountToRadians(rb->ReadEncoderSpeedM1(129));
-    msg.m2BackVelocity = encoderCountToRadians(rb->ReadEncoderSpeedM2(129));
-
-    std_msgs::Float64 velocityMsg;
-    velocityMsg.data = encoderCountToRadians(rb->ReadEncoderSpeedM1(128));
-    test.publish(velocityMsg);
+    msg.m1FrontVelocity = encoderCountToRevolutions(rb->ReadEncoderSpeedM1(128));
+    msg.m2FrontVelocity = encoderCountToRevolutions(rb->ReadEncoderSpeedM2(128));
+    msg.m1BackVelocity = encoderCountToRevolutions(rb->ReadEncoderSpeedM1(129));
+    msg.m2BackVelocity = encoderCountToRevolutions(rb->ReadEncoderSpeedM2(129));
 
     // Get imu data
     float ax[2], ay[2], az[2], gr[2], gp[2], gy[2]; // acceleration x,y,z and gyro roll (x), pitch (y), yaw (z)
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 1; i++)
     {
         getImuAcceleration(i, ax[i], ay[i], az[i]);
         getImuGyro(i, gr[i], gp[i], gy[i]); 
@@ -307,17 +294,21 @@ void WheelHardwareInterface::driveWithSpeed(Roboclaw *rb)
     int32_t cmd_to_send[4];
     for (int i = 0; i < 4; i++)
     {
-        cmd_to_send[i] = radiansToEncoderCount(cmd[i]);
+        cmd_to_send[i] = revolutionsToEncoderCount(cmd[i]);
     }
+    // ROS_INFO_STREAM("cmd[0]: " << cmd[0]);
+    // ROS_INFO_STREAM("cmd_to_send[0]: " << cmd_to_send[0]);
+    // speed = 4 cm/s
+    // speed / 2 pi 7.5cm * ticks/rev = ticks/s
 
     // if (cmd[0] != 0)
-        rb->DriveSpeedM2(128, cmd_to_send[0]);
+        rb->DriveSpeedAccelM2(128, 1500, cmd_to_send[0]);
     // if (cmd[0] != 0)
-        rb->DriveSpeedM2(129, cmd_to_send[1]);
+        rb->DriveSpeedAccelM2(129, 1500, cmd_to_send[1]);
     // if (cmd[0] != 0)
-        rb->DriveSpeedM1(128, cmd_to_send[2]);
+        rb->DriveSpeedAccelM1(128, 1500, cmd_to_send[2]);
     // if (cmd[0] != 0)
-        rb->DriveSpeedM1(129, cmd_to_send[3]);
+        rb->DriveSpeedAccelM1(129, 1500, cmd_to_send[3]);
 
     cmd[0] = cmd[1] = cmd[2] = cmd[3] = 0;
 }
@@ -342,14 +333,15 @@ void WheelHardwareInterface::getVelocityFromEncoders()
     // velocity = distance / time
 }
 
-float WheelHardwareInterface::encoderCountToRadians(int32_t encoderCount)
+float WheelHardwareInterface::encoderCountToRevolutions(int32_t encoderCount)
 {
-    return ((float)encoderCount) * wheelSettings->radiansPerEncoderTick;
+    return ((float)encoderCount) * wheelSettings->revolutionsPerEncoderTick;
 }
 
-int32_t WheelHardwareInterface::radiansToEncoderCount(float radians)
+// int32 because roboclaws expect an int32 not a float
+int32_t WheelHardwareInterface::revolutionsToEncoderCount(float revolutions)
 {
-    return radians * wheelSettings->encoderTicksPerRadian;
+    return revolutions * wheelSettings->encoderTicksPerRevolution;
 }
 
 ros::Time WheelHardwareInterface::get_time()
@@ -422,8 +414,8 @@ void WheelHardwareInterface::registerJointVelocityHandlers()
 void WheelHardwareInterface::calibrateImu(uint8_t imu_index)
 {
     ROS_INFO_STREAM("Calibrating MPU6050 IMU");
-    float ax[1000], ay[1000], az[1000], gr[1000], gp[1000], gy[1000];
-    for (int i = 0; i < 1000; i++)
+    float ax[200], ay[200], az[200], gr[200], gp[200], gy[200];
+    for (int i = 0; i < 200; i++)
     {
         imu[imu_index]->getAccel(&ax[i], &ay[i], &az[i]);
         imu[imu_index]->getGyro(&gr[i], &gp[i], &gy[i]);
@@ -437,7 +429,7 @@ void WheelHardwareInterface::calibrateImu(uint8_t imu_index)
     float gr_sum = 0.0f;
     float gp_sum = 0.0f;
     float gy_sum = 0.0f;
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < 200; i++)
     {
         ax_sum += ax[i];
         ay_sum += ay[i];
@@ -446,12 +438,12 @@ void WheelHardwareInterface::calibrateImu(uint8_t imu_index)
         gp_sum += gp[i];
         gy_sum += gy[i];
     }
-    ax_offset[imu_index] = ax_sum / 1000.0f;
-    ay_offset[imu_index] = ay_sum / 1000.0f;
-    az_offset[imu_index] = az_sum / 1000.0f;
-    gr_offset[imu_index] = gr_sum / 1000.0f;
-    gp_offset[imu_index] = gp_sum / 1000.0f;
-    gy_offset[imu_index] = gy_sum / 1000.0f;
+    ax_offset[imu_index] = ax_sum / 200.0f;
+    ay_offset[imu_index] = ay_sum / 200.0f;
+    az_offset[imu_index] = az_sum / 200.0f;
+    gr_offset[imu_index] = gr_sum / 200.0f;
+    gp_offset[imu_index] = gp_sum / 200.0f;
+    gy_offset[imu_index] = gy_sum / 200.0f;
     ROS_INFO_STREAM("Calibration Complete");
 }
 
